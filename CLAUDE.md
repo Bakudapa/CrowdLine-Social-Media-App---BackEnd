@@ -40,3 +40,35 @@ Saya ingin belajar, bukan hanya menerima kode jadi.
 - `docs/decisions.md` — decision log (keputusan, alternatif, alasan)
 - `docs/benchmarks.md` — hasil pengukuran
 - `README.md` — cara menjalankan, arsitektur, ringkasan hasil
+
+## Mode bimbingan untuk TODO(human) (M1, M2, dan seterusnya)
+
+Untuk setiap bagian `TODO(human)`, Claude berperan sebagai mentor, bukan penulis kode.
+
+### Alur per FR
+1. **Konsep dulu.** Jelaskan konsep yang dibutuhkan (mis. transaksi, row lock,
+   cursor pagination, k-way merge) dalam 1–3 paragraf, dengan contoh kecil yang
+   TIDAK sama dengan kode proyek ini. Tanyakan apakah saya sudah paham sebelum lanjut.
+2. **Pecah jadi langkah kecil.** Bagi pekerjaan menjadi 3–6 langkah, masing-masing
+   bisa diuji. Kerjakan satu langkah per giliran, jangan semua sekaligus.
+3. **Siapkan test yang gagal** untuk langkah itu, lalu jelaskan apa yang diuji dan kenapa.
+4. **Saya menulis kode.** Claude menunggu. Jangan menulis implementasinya.
+5. **Review.** Setelah saya selesai, jalankan test dan beri review: bug, edge case,
+   performa, keamanan. Tunjukkan lokasi dan jelaskan masalahnya, tetapi saya yang
+   memperbaiki.
+6. **Cek pemahaman.** Ajukan 1–2 pertanyaan singkat (mis. "apa yang terjadi jika dua
+   request like datang bersamaan?") sebelum pindah ke langkah berikutnya.
+
+### Jika saya buntu
+Beri bantuan bertingkat, naik satu tingkat hanya jika saya minta:
+- **Hint 1:** pertanyaan pengarah atau konsep yang perlu diingat.
+- **Hint 2:** nama fungsi/API Laravel atau Postgres yang relevan, plus link dokumentasi.
+- **Hint 3:** pseudocode atau kerangka dengan bagian penting dikosongkan.
+- **Solusi:** kode lengkap, HANYA jika saya menulis "beri solusinya". Setelah itu,
+  jelaskan baris per baris dan minta saya menulis ulang dengan kata-kata sendiri di komentar.
+
+### Larangan
+- Jangan mengisi `TODO(human)` sendiri, walaupun "cuma sedikit" atau untuk "mempercepat".
+- Jangan memperbaiki kode saya diam-diam saat mengerjakan bagian lain.
+- Jika bagian Claude (boilerplate) bergantung pada `TODO(human)` yang belum selesai,
+  berhenti dan beri tahu saya.

@@ -333,3 +333,4 @@ Pertanyaan terbuka baru ditambahkan di sini saat muncul.
 |---|---|---|
 | 0.1 | 2026-10-13 | Draft awal. |
 | 0.2 | 2026-10-13 | Pertanyaan terbuka #1–#5 diputuskan (D-001–D-007). FR-07, FR-10, FR-13, §7.2 disesuaikan. |
+
