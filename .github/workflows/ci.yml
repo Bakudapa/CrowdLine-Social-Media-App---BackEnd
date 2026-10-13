@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: "8.5"
+
+jobs:
+  lint:
+    name: Pint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ env.PHP_VERSION }}-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+
+      - run: ./vendor/bin/pint --test
+
+  test:
+    name: Pest (multi-shard)
+    runs-on: ubuntu-latest
+
+    # NFR-11: tests run against real Postgres with more than one shard.
+    # CI topology: global + 2 regular shards + 1 dedicated shard.
+    services:
+      pg_global:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: crowdline_test
+          POSTGRES_USER: crowdline
+          POSTGRES_PASSWORD: secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U crowdline"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      shard_0:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: crowdline_test
+          POSTGRES_USER: crowdline
+          POSTGRES_PASSWORD: secret
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U crowdline"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      shard_1:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: crowdline_test
+          POSTGRES_USER: crowdline
+          POSTGRES_PASSWORD: secret
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U crowdline"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      shard_ded_0:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: crowdline_test
+          POSTGRES_USER: crowdline
+          POSTGRES_PASSWORD: secret
+        ports: ["5435:5432"]
+        options: >-
+          --health-cmd "pg_isready -U crowdline"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      DB_CONNECTION: global
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: crowdline_test
+      DB_USERNAME: crowdline
+      DB_PASSWORD: secret
+      SHARDS_REGULAR: shard_0,shard_1
+      SHARDS_DEDICATED: shard_ded_0
+      DB_SHARD_0_HOST: 127.0.0.1
+      DB_SHARD_0_PORT: 5433
+      DB_SHARD_1_HOST: 127.0.0.1
+      DB_SHARD_1_PORT: 5434
+      DB_SHARD_DED_0_HOST: 127.0.0.1
+      DB_SHARD_DED_0_PORT: 5435
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo_pgsql, pgsql, redis
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ env.PHP_VERSION }}-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # Smoke-test the migrations on every database before running the suite.
+      - name: Migrate global DB and shards
+        run: |
+          php artisan migrate --force
+          php artisan shards:migrate
+
+      - run: ./vendor/bin/pest

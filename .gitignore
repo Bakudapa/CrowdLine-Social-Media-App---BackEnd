@@ -1,0 +1,43 @@
+# Laravel
+/vendor
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/bootstrap/cache/*.php
+.phpunit.result.cache
+/.phpunit.cache
+auth.json
+
+# Environment / secrets
+.env
+.env.backup
+.env.production
+.env.*.local
+
+# Docker volumes (if bind-mounted locally)
+/docker/data/
+
+# Editors & OS
+/.idea
+/.vscode
+/.fleet
+/.zed
+.phpactor.json
+.DS_Store
+Thumbs.db
+*.log
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Additional Laravel defaults
+/.codex
+/.cursor/
+/.nova
+/public/fonts-manifest.dev.json
+_ide_helper.php
+Homestead.json
+Homestead.yaml
